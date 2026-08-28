@@ -53,3 +53,54 @@ select
     (order_date::date - lag(order_date) over (partition by customer_id order by order_date asc, order_id asc)::date) as days_between_orders
 from orders
 order by customer_id, order_date;
+
+-- Задача 4: посчитать накопительную (running total) выручку по дням
+with daily_totals as (
+    select
+        payment_date::date as payment_day,
+        sum(amount) as daily_total
+    from payments
+    group by payment_date::date
+)
+select 
+    payment_day,
+    daily_total,
+    sum(daily_total) over (order by payment_day) as running_total
+from daily_totals
+order by payment_day
+
+-- Задача 5: список клиентов (+ email), у которых 3+ заказов, но с последнего прошло >30 дней
+select
+    c.customer_id,
+    c.first_name,
+    c.email,
+    count(o.order_id) as n_of_orders,
+    max(o.order_date)::date as last_order_date,
+    (now()::date - max(o.order_date)::date) as days_since_last_order
+from orders o inner join customers c on o.customer_id = c.customer_id
+where c.email is not null
+group by c.customer_id, c.first_name, c.email
+having count(o.order_id) >= 3 and (now()::date - max(o.order_date)::date) > 30
+order by c.customer_id;
+
+-- Задача 6: месячная выручка (сумма всех платежей) со сравнением месяц к месяцу
+select
+	date_trunc('month', o.order_date)::date as order_month,
+	sum(p.amount) as sales,
+	lag(sum(p.amount)) over (order by date_trunc('month', o.order_date)) as last_month_sales,
+	sum(p.amount) - lag(sum(p.amount)) over (order by date_trunc('month', o.order_date)) as sales_diff
+from orders o inner join payments p on o.order_id = p.order_id
+where o.order_date < date_trunc('month', now()) -- обрезается текущий (неполный) месяц
+group by date_trunc('month', o.order_date)
+order by order_month desc
+
+-- Задача 7: Для каждой категории посчитать кол-во уникальных проданных товаров и долю выручки самого продаваемого товара (топ-1 товар по выручке) категории от общей выручки всей категории
+select distinct
+	p.category,
+	sum(o.quantity * o.price_at_purchase) over (partition by p.category) as category_revenue,
+	o.product_id,
+	sum(o.quantity) over (partition by o.product_id) as product_sales,
+	sum(o.quantity * o.price_at_purchase) over (partition by o.product_id) as product_revenue,
+	round((sum(o.quantity * o.price_at_purchase) over (partition by o.product_id order by o.product_id asc) * 100) / sum(o.quantity * o.price_at_purchase) over (partition by p.category), 2) as percent
+from order_items o inner join products p on o.product_id = p.product_id
+order by p.category asc, product_revenue desc
