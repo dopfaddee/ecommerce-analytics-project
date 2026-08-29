@@ -94,7 +94,7 @@ where o.order_date < date_trunc('month', now()) -- обрезается теку
 group by date_trunc('month', o.order_date)
 order by order_month desc
 
--- Задача 7: Для каждой категории посчитать кол-во уникальных проданных товаров и долю выручки самого продаваемого товара (топ-1 товар по выручке) категории от общей выручки всей категории
+-- Задача 7: для каждой категории посчитать кол-во уникальных проданных товаров и долю выручки самого продаваемого товара (топ-1 товар по выручке) категории от общей выручки всей категории
 select distinct
 	p.category,
 	sum(o.quantity * o.price_at_purchase) over (partition by p.category) as category_revenue,
@@ -104,3 +104,50 @@ select distinct
 	round((sum(o.quantity * o.price_at_purchase) over (partition by o.product_id order by o.product_id asc) * 100) / sum(o.quantity * o.price_at_purchase) over (partition by p.category), 2) as percent
 from order_items o inner join products p on o.product_id = p.product_id
 order by p.category asc, product_revenue desc
+
+-- Задача 8: для каждого месяца посчитать кол-во самых первых заказов клиентов и кол-во повторных
+with order_rank as(
+	select
+		order_id,
+		customer_id,
+		order_date,
+		row_number() over (partition by customer_id order by order_date asc, order_id asc) as order_seq
+	from orders
+)
+
+select
+	date_trunc('month', order_date)::date as order_month,
+	case when order_seq = 1 then 'first-timer' else 'returning' end as order_type,
+	count(*) as number_of_orders
+from order_rank
+group by date_trunc('month', order_date)::date, case when order_seq = 1 then 'first-timer' else 'returning' end
+order by order_month desc, order_type 
+
+-- Задача 9: определить статус клиента: если потратил больше 20 000 — "VIP", если сделал 5+ заказов — "постоянный", иначе — "обычный" (при совпадении условий - VIP)
+with revenue_of_order as (
+	select
+		o.customer_id,
+		o.order_id,
+		o.order_date::date as order_date,
+		sum(ot.quantity * ot.price_at_purchase) as order_revenue
+	from orders o 
+	join order_items ot on o.order_id = ot.order_id
+	group by o.customer_id, o.order_id, o.order_date
+	order by o.customer_id asc
+)
+
+select 
+	r.customer_id,
+	count(r.order_id) as total_orders,
+	sum(r.order_revenue) as total_spent,
+	max(r.order_date) as last_order_date,
+	case 
+		when sum(r.order_revenue) > 20000 then 'VIP'
+		when count(r.order_id) >= 5 then 'regular' else 'usual' end as client_status,
+	c.first_name,
+	c.last_name,
+	c.email,
+	c.phone
+from revenue_of_order r join customers c on r.customer_id = c.customer_id
+group by r.customer_id, c.first_name, c.last_name, c.email, c.phone
+order by total_spent desc
