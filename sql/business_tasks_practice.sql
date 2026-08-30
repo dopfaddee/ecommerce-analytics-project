@@ -219,3 +219,23 @@ cross join all_time_avg a
 order by m.order_month desc;
 
 -- Задача 12: собрать полный отчёт за последние 90 дней (включая дни без платежей - где сумма 0, а не null)
+with date_range as (
+    select generate_series(
+        (select max(payment_date::date) from payments)- interval '90 days',  -- не использовал current_date, так как задача выполнялась через несколько дней после генерации данных и последние дни были "пустые", загрязняя результат
+        (select max(payment_date::date) from payments), interval '1 day')::date as day
+),
+daily_revenue as (
+    select
+        payment_date::date as day,
+        sum(amount) as revenue
+    from payments
+    group by payment_date::date
+)
+select
+    d.day,
+    coalesce(dr.revenue, 0) as revenue
+from date_range d
+left join daily_revenue dr on d.day = dr.day
+order by d.day desc
+
+-- Задача 13: найти всех клиентов, чей первый заказ был отменён, - людей с потенциально плохим опытом
