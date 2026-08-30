@@ -151,3 +151,71 @@ select
 from revenue_of_order r join customers c on r.customer_id = c.customer_id
 group by r.customer_id, c.first_name, c.last_name, c.email, c.phone
 order by total_spent desc
+
+-- Задача 10: список клиентов, чья сумма покупок превышает среднюю сумму по клиентам; кол-во и доля в общеё выручке компании
+with customer_totals as (
+    select
+        o.customer_id,
+        c.email, 
+        sum(ot.quantity * ot.price_at_purchase) as user_spent
+    from orders o 
+    join order_items ot on o.order_id = ot.order_id
+    join customers c on o.customer_id = c.customer_id
+    group by o.customer_id, c.email
+),
+profit as (
+    select 
+        customer_id,
+        email,
+        user_spent,
+        (user_spent * 100) / ((select sum(user_spent) from customer_totals)) as share_of_profit,
+        (select sum(user_spent) from customer_totals) as total_spent
+    from customer_totals
+    where user_spent > (select avg(user_spent) from customer_totals)
+)
+select 
+    customer_id,
+    email,
+	user_spent,
+	round(share_of_profit,2) as user_share,
+	(select round(sum(user_spent),2) from profit) as total_spent,
+    (select count(customer_id) from profit) as count_of_above_avg_users,
+    (select round(sum(share_of_profit),2) from profit) as total_share
+from profit
+where email is not null
+group by customer_id, email, user_spent, share_of_profit
+order by customer_id
+
+-- Задача 11: для каждого месяца средний чек и отклонение от среднего чека за весь период в процентах (более 20% - аномальный месяц)
+with avg_month_revenue as (
+	select
+		date_trunc('month', o.order_date)::date as order_month,
+		round(sum(p.amount)/count(o.order_id), 2) as avg_month_revenue
+	from payments p join orders o on p.order_id = o.order_id
+	where o.order_date < date_trunc('month', now())
+	group by date_trunc('month', o.order_date)::date
+	order by date_trunc('month', o.order_date)::date desc
+),
+
+all_time_avg as (
+	select
+		round(sum(p.amount)/count(o.order_id), 2) as all_time_avg
+	from payments p join orders o on p.order_id = o.order_id
+	where o.order_date < date_trunc('month', now())
+)
+
+select
+    m.order_month,
+    m.avg_month_revenue,
+    a.all_time_avg,
+    round((m.avg_month_revenue - a.all_time_avg) * 100.0 / a.all_time_avg, 2) as deviation_pct,
+    case 
+        when abs((m.avg_month_revenue - a.all_time_avg) * 100.0 / a.all_time_avg) > 20 
+        then 'anomaly' 
+        else 'normal' 
+    end as month_flag
+from avg_month_revenue m
+cross join all_time_avg a
+order by m.order_month desc;
+
+-- Задача 12: собрать полный отчёт за последние 90 дней (включая дни без платежей - где сумма 0, а не null)
