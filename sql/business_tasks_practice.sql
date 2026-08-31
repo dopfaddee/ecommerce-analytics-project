@@ -239,3 +239,37 @@ left join daily_revenue dr on d.day = dr.day
 order by d.day desc
 
 -- Задача 13: найти всех клиентов, чей первый заказ был отменён, - людей с потенциально плохим опытом
+with order_rank as (
+	select
+		customer_id,
+		order_id,
+		order_date::date,
+		row_number() over (partition by customer_id order by order_date::date asc) as order_seq,
+		status
+	from orders
+)
+
+select *
+from order_rank
+where order_seq = 1 and status = 'cancelled'
+order by customer_id asc
+
+
+--Задача 14: одна таблица на каждого клиента, где сразу видно месяц первого заказа, 
+--сколько всего у него заказов (общее количество заказов и количество без учёта cancelled), 
+--сколько он всего потратил, и активен ли он сейчас (хоть один заказ за последние 60 дней)
+select
+    o.customer_id,
+    date_trunc('month', min(o.order_date))::date as first_order_month,
+    count(distinct o.order_id) as total_orders,
+    count(distinct case when o.status <> 'cancelled' then o.order_id end) as active_orders,
+    coalesce(sum(p.amount), 0) as total_spent,
+    case 
+        when max(o.order_date) >= (select max(order_date) from orders) - interval '60 days' 
+        then 'active' 
+        else 'inactive' 
+    end as is_active
+from orders o 
+left join payments p on o.order_id = p.order_id 
+group by o.customer_id
+order by o.customer_id asc;
