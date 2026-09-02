@@ -4,7 +4,7 @@
 Python-обработки, визуализации и A/B-тестирования.
 
 ## Статус
-В процессе. Сейчас: SQL-анализ (оконные функции, CTE).
+В процессе. Сейчас: SQL-анализ (RFM-сегментация и EXPLAIN ANALYZE).
 
 ## Данные
 Синтетические данные интернет-магазина, сгенерированные через Python (Faker) — не реальный бизнес, цель — отработать методологию анализа на реалистичной структуре данных.
@@ -13,6 +13,8 @@ Python-обработки, визуализации и A/B-тестирован�
 - `sql/create_tables.sql` — схема БД (5 таблиц: customers, products, orders, order_items, payments)
 - `sql/corrupt_data.sql` — намеренное искажение части данных (дубли, пропуски, выбросы) для последующей практики очистки данных в Python
 - `sql/business_tasks_practice.sql` — практика бизнес задач (в процессе)
+- `sql/rfm_segmentation.sql` — задача на RFM-сегментирование клиентов
+- `sql/query_performance.sql` — практика explain analize и индексов (в процессе)
 
 ## Инструменты
 PostgreSQL, pgAdmin, Python (pandas, Faker, SQLAlchemy)
