@@ -28,10 +28,22 @@
 ## Схема данных
 
 Смоделирован интернет-магазин из пяти связанных таблиц:
+<<<<<<< HEAD
 
 customers --< orders --< order_items >-- products
                   |
                   --< payments
+=======
+```text
+customers
+    │
+    └──< orders
+          │
+          ├──< order_items >── products
+          │
+          └──< payments
+```
+>>>>>>> b23e4b2 (обновил readme)
 
 - `customers` — клиенты (email уникален, телефон и город — необязательные поля)
 - `products` — товары с себестоимостью и ценой продажи
@@ -42,17 +54,21 @@ customers --< orders --< order_items >-- products
 Полная схема с обоснованием типов данных и constraints — в `sql/create_tables.sql`.
 
 ## Структура репозитория
+<<<<<<< HEAD
 
+=======
+```text
+>>>>>>> b23e4b2 (обновил readme)
 ├── README.md
-├── .env.example — шаблон переменных окружения (реальный .env в .gitignore)
 ├── sql/
-│ ├── create_tables.sql — схема БД с комментариями по каждому решению
-│ ├── corrupt_data.sql — намеренное искажение данных для практики очистки
-│ ├── business_tasks_practice.sql — 14 задач в формате реальных бизнес-запросов
-│ ├── rfm_segmentation.sql — RFM-модель через NTILE, два варианта сегментации
-│ └── query_performance.sql — EXPLAIN ANALYZE, индексы, сравнение планов
-├── notebooks/
-│ └── generate_data.ipynb — генерация синтетических данных (Faker → PostgreSQL)
+│   ├── create_tables.sql – схема БД
+│   ├── corrupt_data.sql — намеренное искажение данных (немного)
+│   ├── business_tasks_practice.sql — 14 задач для решения бизнес-запросов
+│   ├── rfm_segmentation.sql – RFM-модель через NTILE, два варианта сегментации
+│   └── query_performance.sql — EXPLAIN ANALYZE, индексы, сравнение планов
+└── notebooks/
+    └── generate_data.ipynb  – генерация синтетических данных (Faker → PostgreSQL)
+```
 
 ## Пройденные темы (SQL)
 
