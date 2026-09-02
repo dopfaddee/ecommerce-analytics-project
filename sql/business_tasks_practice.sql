@@ -272,4 +272,4 @@ select
 from orders o 
 left join payments p on o.order_id = p.order_id 
 group by o.customer_id
-order by o.customer_id asc;
+order by o.customer_id asc
