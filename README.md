@@ -28,6 +28,7 @@
 ## Схема данных
 
 Смоделирован интернет-магазин из пяти связанных таблиц:
+
 customers --< orders --< order_items >-- products
                   |
                   --< payments
@@ -41,6 +42,7 @@ customers --< orders --< order_items >-- products
 Полная схема с обоснованием типов данных и constraints — в `sql/create_tables.sql`.
 
 ## Структура репозитория
+
 ├── README.md
 ├── .env.example — шаблон переменных окружения (реальный .env в .gitignore)
 ├── sql/
