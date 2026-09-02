@@ -28,6 +28,7 @@
 ## Схема данных
 
 Смоделирован интернет-магазин из пяти связанных таблиц:
+```text
 customers
     │
     └──< orders
@@ -35,6 +36,7 @@ customers
           ├──< order_items >── products
           │
           └──< payments
+```
 
 - customers — клиенты (email уникален, телефон и город — необязательные поля)
 - products — товары с себестоимостью и ценой продажи
@@ -42,9 +44,10 @@ customers
 - order_items — позиции заказа; цена фиксируется на момент покупки отдельно от текущей цены товара (защита от искажения исторических данных при изменении цен)
 - payments — платежи; отсутствуют для отменённых заказов
 
-Полная схема с обоснованием типов данных и constraints — в sql/create_tables.sql.
+Полная схема в sql/create_tables.sql.
 
 ## Структура репозитория
+```text
 ├── README.md
 ├── sql/
 │   ├── create_tables.sql – схема БД
@@ -54,6 +57,7 @@ customers
 │   └── query_performance.sql — EXPLAIN ANALYZE, индексы, сравнение планов
 └── notebooks/
     └── generate_data.ipynb  – генерация синтетических данных (Faker → PostgreSQL)
+```
 
 ## Пройденные темы (SQL)
 
