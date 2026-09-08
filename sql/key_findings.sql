@@ -104,7 +104,6 @@ category 	  | category_revenue | product_id | product_sales | product_revenue | 
 выручки внутри категорий равномерное, риск концентрации отсутствует */
 
 -- Доля клиентов с высоким Monetary, но давним Recency (риск оттока):
-
 with customer_info as (
     select
         o.customer_id,
@@ -129,4 +128,58 @@ select
     round(count(*) filter (where m_score = 1 and r_score >= 3) * 100.0 / count(*), 1) as high_value_at_risk_pct
 from rfm_scores
 
-/* Результат: 8.5%
+--Результат: 8.5%
+
+
+-- Распределение количества клиентов по каждому RFM-сегменту:
+with customer_info as (
+    select
+        o.customer_id,
+        (select max(order_date::date) from orders) - max(o.order_date::date) as days_since_last_order,
+        count(distinct o.order_id) as total_orders,
+        coalesce(sum(p.amount), 0) as total_spent
+    from orders o
+    left join payments p on o.order_id = p.order_id
+    group by o.customer_id
+),
+
+rfm_scores as (
+    select
+        customer_id,
+        ntile(4) over (order by days_since_last_order asc) as r_score,
+        ntile(4) over (order by total_orders desc) as f_score,
+        ntile(4) over (order by total_spent desc) as m_score
+    from customer_info
+)
+
+select 
+	case
+		when r_score + f_score + m_score <= 4 then 'champion'
+		when r_score + f_score + m_score <= 7 then 'loyal'
+		when r_score + f_score + m_score <= 10 then 'at risk'
+		else 'lost'
+	end as segment,
+	count(*)
+from rfm_scores
+group by segment
+
+
+/* Результат
+segment 	| count
+"lost"		| 134
+"loyal"		| 273
+"at risk"	| 266
+"champion"	| 126
+
+В отличие от предыдущих метрик, здесь есть содержательный сигнал: 
+размер сегментов champion и lost в разы превышает ожидаемый при 
+полностью случайном (независимом) распределении R/F/M (~12-13 человек при 
+случайности). 
+
+Причина не в способе генерации, а в том, что количество заказов, 
+их давность и сумма трат у клиента реально связаны через логику скрипта 
+*(больше заказов → выше шанс недавней покупки → больше потрачено)* — это 
+отражает реалистичное поведенческое допущение, а не побочный эффект случайности.
+
+Беру эту находку как основу для hypotheses.md.
+*/
